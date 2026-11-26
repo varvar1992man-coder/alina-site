@@ -217,6 +217,50 @@
 
   footer { text-align: center; margin-top: 24px; font-size: 13px; }
   footer a { color: var(--accent-dark); text-decoration: none; font-weight: 600; }
+
+  /* Заявка на консультацию */
+  .lead { display: none; margin-top: 16px; }
+  .lead.show { display: block; }
+  .lead h2 {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600; font-size: 28px; line-height: 1.1; text-align: center;
+  }
+  .lead .intro { color: var(--muted); font-size: 14px; text-align: center; margin: 6px 0 18px; }
+  .inp {
+    width: 100%;
+    font: inherit; font-size: 16px; color: var(--text);
+    background: var(--bg-soft);
+    border: 1.5px solid transparent; border-radius: 14px;
+    padding: 13px 14px; outline: none;
+  }
+  .inp::placeholder { color: var(--muted); opacity: .8; }
+  .inp:focus { border-color: var(--accent); background: var(--card); }
+  .inp.bad, .consent.bad { border-color: #D56B5A; }
+  .hint { display: block; font-size: 12px; color: var(--muted); margin: 4px 0 0 4px; }
+  .consent {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 13px; color: var(--muted); line-height: 1.45;
+    border: 1.5px solid transparent; border-radius: 12px; padding: 6px;
+    margin: 16px -6px 0;
+  }
+  .consent input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--accent); }
+  .consent a { color: var(--accent-dark); }
+  .lead .btn { margin-top: 18px; }
+  .lead .btn[disabled] { opacity: .6; cursor: default; }
+  .trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .status { font-size: 14px; text-align: center; margin-top: 12px; min-height: 1em; }
+  .status.error { color: #B5523F; }
+  .status a { color: var(--accent-dark); }
+  .done { text-align: center; padding: 8px 0; }
+  .done .big { font-size: 40px; }
+  .done p { margin-top: 6px; }
+  .done .muted { color: var(--muted); font-size: 14px; }
+
+  /* Внутри Telegram: цвета темы Telegram, без декоративного фона */
+  html.tg body { background: var(--bg); }
+  html.tg .install, html.tg #iosInstall { display: none !important; }
+  html.tg .card { box-shadow: none; }
+  html.tg .btn { box-shadow: none; color: var(--btn-text, #fff); }
 </style>
 </head>
 <body>
@@ -290,11 +334,79 @@
     </p>
   </div>
 
+  <section class="card lead" id="lead" aria-labelledby="leadTitle">
+    <form id="leadForm" novalidate>
+      <h2 id="leadTitle">Записаться на консультацию</h2>
+      <p class="intro">Алина разберёт ваш расчёт и поможет составить питание под вашу цель</p>
+
+      <div class="field">
+        <label class="label" for="leadName">Имя</label>
+        <input class="inp" id="leadName" name="name" type="text" autocomplete="name" maxlength="80" required>
+      </div>
+      <div class="field">
+        <label class="label" for="leadContact">Телефон или ник в Telegram</label>
+        <input class="inp" id="leadContact" name="contact" type="text" autocomplete="tel" maxlength="64"
+               placeholder="+7 999 123-45-67 или @nickname" required>
+      </div>
+      <div class="field">
+        <label class="label" for="leadTime">Удобное время</label>
+        <input class="inp" id="leadTime" name="time" type="text" maxlength="120"
+               placeholder="например, будни после 18:00" required>
+      </div>
+
+      <!-- Ловушка для спам-роботов: человек это поле не видит и не заполняет -->
+      <div class="trap" aria-hidden="true">
+        <label for="leadWebsite">Сайт</label>
+        <input id="leadWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+      </div>
+
+      <label class="consent" id="leadConsentBox">
+        <input type="checkbox" id="leadConsent" name="consent">
+        <span>Даю согласие на обработку персональных данных в соответствии с
+          <a href="../privacy.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
+      </label>
+
+      <button class="btn" type="submit" id="leadSubmit">Записаться</button>
+      <p class="status" id="leadStatus" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
   <p class="disclaimer">Расчёт по формуле Миффлина — Сан Жеора. Это ориентир, а не назначение: при заболеваниях, беременности и кормлении грудью норму подбирает специалист.</p>
 
-  <footer><a href="../">Записаться на консультацию к Алине →</a></footer>
+  <footer><a href="../" id="footerLink">Записаться на консультацию к Алине →</a></footer>
 </div>
 
+<script src="config.js"></script>
+<script>
+/* ---------- Telegram Mini App: тема Telegram ещё до загрузки его скрипта ---------- */
+(function () {
+  var hash = location.hash.slice(1);
+  if (!/(^|&)tgWebApp(Data|Version|Platform)=/.test(hash)) return;
+  document.documentElement.classList.add('tg');
+  window.ALINA_IN_TELEGRAM = true;
+  try {
+    var params = new URLSearchParams(hash);
+    var theme = JSON.parse(params.get('tgWebAppThemeParams') || '{}');
+    window.ALINA_APPLY_THEME = function (p) {
+      var map = {
+        '--bg': p.bg_color,
+        '--card': p.section_bg_color || p.bg_color,
+        '--bg-soft': p.secondary_bg_color,
+        '--text': p.text_color,
+        '--muted': p.hint_color || p.subtitle_text_color,
+        '--accent': p.button_color,
+        '--accent-dark': p.link_color || p.button_color,
+        '--line': p.section_separator_color || p.secondary_bg_color,
+        '--btn-text': p.button_text_color
+      };
+      Object.keys(map).forEach(function (k) {
+        if (map[k]) document.documentElement.style.setProperty(k, map[k]);
+      });
+    };
+    window.ALINA_APPLY_THEME(theme);
+  } catch (e) {}
+})();
+</script>
 <script>
 (function () {
   var form = document.getElementById('form');
@@ -346,6 +458,8 @@
 
     if (!ok) {
       out.innerHTML = '<p class="err">Проверьте данные: возраст 14–100 лет, рост 120–230 см, вес 35–250 кг.</p>';
+      window.ALINA_CALC = '';
+      document.dispatchEvent(new Event('calc'));
       return;
     }
     save(d);
@@ -386,6 +500,10 @@
         macro('Жиры', f, fp, '--f') +
         macro('Углеводы', c, cp, '--c') +
       '</div>';
+
+    var goalNames = { lose: 'снизить вес', keep: 'сохранить вес', gain: 'набрать вес' };
+    window.ALINA_CALC = fmt(kcal) + ' ккал в день, цель: ' + goalNames[d.goal];
+    document.dispatchEvent(new Event('calc'));
   }
 
   function macro(name, g, pct, color) {
@@ -426,6 +544,132 @@
   var ua = navigator.userAgent;
   var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (isIOS && !standalone) document.getElementById('iosInstall').classList.add('show');
+
+  /* ---------- Заявка на консультацию ---------- */
+  var cfg = window.ALINA_CONFIG || {};
+  var lead = document.getElementById('lead');
+  var leadForm = document.getElementById('leadForm');
+  var statusEl = document.getElementById('leadStatus');
+  var submitBtn = document.getElementById('leadSubmit');
+  var shownAt = Date.now();
+  var CONTACT_RE = /^(\+?[\d\s\-()]{7,20}|@?[A-Za-z][A-Za-z0-9_]{3,31})$/;
+  var leadEnabled = !!cfg.LEAD_URL;
+
+  function tgLink() {
+    return cfg.TELEGRAM_USERNAME
+      ? ' или <a href="https://t.me/' + encodeURIComponent(cfg.TELEGRAM_USERNAME) + '" target="_blank" rel="noopener">напишите Алине в Telegram</a>'
+      : '';
+  }
+  function showLead() {
+    // Форму показываем только после успешного расчёта и если задан адрес бота
+    lead.classList.toggle('show', leadEnabled && !!window.ALINA_CALC);
+  }
+  document.addEventListener('calc', showLead);
+  showLead();
+  if (leadEnabled) {
+    var footerLink = document.getElementById('footerLink');
+    footerLink.href = '#lead';
+  }
+
+  function setStatus(text, isError) {
+    statusEl.innerHTML = text;
+    statusEl.className = 'status' + (isError ? ' error' : '');
+  }
+  function mark(el, bad) { el.classList.toggle('bad', bad); return !bad; }
+
+  var f = {
+    name: document.getElementById('leadName'),
+    contact: document.getElementById('leadContact'),
+    time: document.getElementById('leadTime'),
+    consent: document.getElementById('leadConsentBox'),
+    website: document.getElementById('leadWebsite')
+  };
+  function fail(text) { return { userMessage: text }; }
+
+  leadForm.addEventListener('input', function (e) { e.target.classList && e.target.classList.remove('bad'); });
+  document.getElementById('leadConsent').addEventListener('change', function () { f.consent.classList.remove('bad'); });
+  leadForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var data = {
+      name: f.name.value.trim(),
+      contact: f.contact.value.trim(),
+      time: f.time.value.trim(),
+      consent: document.getElementById('leadConsent').checked,
+      website: f.website.value,                 // ловушка для роботов
+      fill_ms: Date.now() - shownAt,            // роботы заполняют форму мгновенно
+      calc: window.ALINA_CALC || '',
+      tg_init_data: (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || ''
+    };
+    var ok = [
+      mark(f.name, data.name.length < 2),
+      mark(f.contact, !CONTACT_RE.test(data.contact)),
+      mark(f.time, data.time.length < 2),
+      mark(f.consent, !data.consent)
+    ].every(Boolean);
+    if (!ok) {
+      setStatus(!data.consent && data.name && data.contact && data.time
+        ? 'Отметьте согласие на обработку персональных данных.'
+        : 'Проверьте поля, выделенные красным. Телефон — цифрами, ник — латиницей, например @nickname.', true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setStatus('Отправляю…');
+    fetch(cfg.LEAD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, body: body }; });
+    }).then(function (r) {
+      if (r.status === 200 && r.body.ok) {
+        lead.innerHTML = '<div class="done"><div class="big">🌿</div><p><b>Спасибо! Заявка отправлена.</b></p>' +
+          '<p class="muted">Алина свяжется с вами, чтобы договориться о времени.</p></div>';
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+          try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (err) {}
+        }
+        return;
+      }
+      if (r.status === 429) throw fail('Сейчас слишком много заявок. Попробуйте через несколько минут' + tgLink() + '.');
+      if (r.status === 400 && r.body.fields) {
+        r.body.fields.forEach(function (n) { if (f[n]) mark(f[n], true); });
+        throw fail('Проверьте поля, выделенные красным.');
+      }
+      throw fail('Не получилось отправить заявку. Попробуйте ещё раз' + tgLink() + '.');
+    }).catch(function (err) {
+      setStatus(err && err.userMessage
+        ? err.userMessage
+        : 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз' + tgLink() + '.', true);
+      submitBtn.disabled = false;
+    });
+  });
+
+  /* ---------- Telegram Mini App ---------- */
+  if (window.ALINA_IN_TELEGRAM) {
+    var s = document.createElement('script');
+    s.src = 'https://telegram.org/js/telegram-web-app.js';
+    s.onload = function () {
+      var tg = window.Telegram && Telegram.WebApp;
+      if (!tg) return;
+      try {
+        tg.ready();
+        tg.expand();
+        var apply = function () {
+          if (window.ALINA_APPLY_THEME) window.ALINA_APPLY_THEME(tg.themeParams || {});
+          try { tg.setHeaderColor('bg_color'); tg.setBackgroundColor('bg_color'); } catch (err) {}
+        };
+        apply();
+        tg.onEvent('themeChanged', apply);
+        // Подставляем имя и ник из Telegram, если поля ещё пустые
+        var u = tg.initDataUnsafe && tg.initDataUnsafe.user;
+        if (u) {
+          if (!f.name.value) f.name.value = [u.first_name, u.last_name].filter(Boolean).join(' ');
+          if (!f.contact.value && u.username) f.contact.value = '@' + u.username;
+        }
+      } catch (err) {}
+    };
+    document.head.appendChild(s);
+  }
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

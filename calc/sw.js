@@ -1,8 +1,11 @@
 // Офлайн-режим: приложение работает без интернета после первого открытия.
-const CACHE = 'calc-v1';
+// Сначала пробуем загрузить свежую версию из интернета, а если его нет — берём из кэша.
+// Поэтому изменения на сайте (например, в config.js) видны сразу.
+const CACHE = 'calc-v2';
 const FILES = [
   './',
   './index.html',
+  './config.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -22,13 +25,16 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  if (e.request.method !== 'GET') return;           // заявки (POST) идут мимо кэша
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
-      // Шрифты и прочие файлы кладём в кэш при первом запросе
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy));
+    fetch(e.request).then(res => {
+      if (res.ok || res.type === 'opaque') {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+      }
       return res;
-    }).catch(() => caches.match('./index.html')))
+    }).catch(() =>
+      caches.match(e.request).then(hit => hit || caches.match('./index.html'))
+    )
   );
 });
