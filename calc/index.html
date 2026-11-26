@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Калькулятор калорий — Алина</title>
+<meta name="description" content="Рассчитайте свою норму калорий и БЖУ. Калькулятор от нутрициолога Алины.">
+<meta name="theme-color" content="#FBF6F0">
+
+<!-- Установка на телефон -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Калории">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FBF6F0;
+    --bg-soft: #F5EADF;
+    --card: #FFFDFA;
+    --text: #3E3129;
+    --muted: #8A776A;
+    --accent: #D9895B;
+    --accent-dark: #C2723F;
+    --line: #EBDDD0;
+    --chip: #F6DCC8;
+    --p: #D9895B;   /* белки */
+    --f: #E8B86A;   /* жиры */
+    --c: #9DB38A;   /* углеводы */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background:
+      radial-gradient(circle at 10% 0%, #F8DCC6 0, transparent 35%),
+      radial-gradient(circle at 100% 30%, #F3E3C9 0, transparent 40%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: "Manrope", system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .app { max-width: 480px; margin: 0 auto; padding: 28px 16px 40px; }
+
+  header { text-align: center; margin-bottom: 24px; }
+  .tag {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent-dark);
+  }
+  h1 {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1.05;
+    margin-top: 6px;
+  }
+  .sub { color: var(--muted); font-size: 15px; margin-top: 6px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 22px 18px;
+    box-shadow: 0 10px 30px -18px rgba(150, 100, 60, .35);
+  }
+  .card + .card { margin-top: 16px; }
+
+  .field + .field { margin-top: 18px; }
+  .label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+
+  /* Переключатели */
+  .seg {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    background: var(--bg-soft);
+    border-radius: 14px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label {
+    text-align: center;
+    padding: 10px 4px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    user-select: none;
+  }
+  .seg input:checked + label {
+    background: var(--card);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 2px 8px -3px rgba(150, 100, 60, .4);
+  }
+  .seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .num .box { position: relative; }
+  .num input {
+    width: 100%;
+    font: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-soft);
+    border: 1.5px solid transparent;
+    border-radius: 14px;
+    padding: 12px 34px 12px 12px;
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .num input::-webkit-outer-spin-button,
+  .num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .num input:focus { border-color: var(--accent); background: var(--card); }
+  .num input.bad { border-color: #D56B5A; }
+  .num span {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--muted); pointer-events: none;
+  }
+  .num small { display: block; font-size: 12px; color: var(--muted); margin: 4px 0 0 4px; }
+
+  select {
+    width: 100%;
+    font: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--bg-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238A776A' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+    border: 1.5px solid transparent;
+    border-radius: 14px;
+    padding: 13px 38px 13px 14px;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* Результат */
+  .result { text-align: center; }
+  .result .label { color: var(--muted); font-weight: 500; margin-bottom: 2px; }
+  .kcal {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-variant-numeric: lining-nums;
+    font-weight: 600;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--accent-dark);
+  }
+  .kcal small { font-size: 26px; margin-left: 4px; }
+  .note { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .note b { color: var(--text); font-weight: 600; }
+
+  .bar {
+    display: flex; height: 10px; border-radius: 99px; overflow: hidden;
+    margin: 22px 0 16px; background: var(--bg-soft);
+  }
+  .bar i { display: block; height: 100%; transition: width .3s; }
+  .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .macro {
+    background: var(--bg-soft);
+    border-radius: 16px;
+    padding: 12px 6px;
+  }
+  .macro .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .macro .name { font-size: 13px; color: var(--muted); }
+  .macro .g { font-size: 24px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .macro .g small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .macro .pct { font-size: 12px; color: var(--muted); }
+
+  .err { color: #B5523F; font-size: 15px; padding: 8px 0; }
+
+  .disclaimer { font-size: 12px; color: var(--muted); text-align: center; margin-top: 16px; line-height: 1.5; }
+
+  /* Установка */
+  .install {
+    display: none;
+    margin-top: 16px;
+    text-align: center;
+  }
+  .install.show { display: block; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    font: inherit;
+    font-weight: 600;
+    font-size: 17px;
+    padding: 16px 24px;
+    border-radius: 999px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 12px 28px -12px rgba(194, 114, 63, .7);
+  }
+  .btn:active { background: var(--accent-dark); }
+  .ios-hint {
+    font-size: 14px; color: var(--muted);
+    background: var(--card); border: 1px dashed var(--line); border-radius: 16px;
+    padding: 14px 16px;
+  }
+  .ios-hint svg { width: 18px; height: 18px; vertical-align: -3px; color: #3C82F6; }
+
+  footer { text-align: center; margin-top: 24px; font-size: 13px; }
+  footer a { color: var(--accent-dark); text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="tag">Нутрициолог Алина</div>
+    <h1>Норма калорий</h1>
+    <p class="sub">Узнайте, сколько энергии и БЖУ нужно вам в день</p>
+  </header>
+
+  <form class="card" id="form" autocomplete="off" novalidate>
+    <div class="field">
+      <span class="label">Пол</span>
+      <div class="seg">
+        <input type="radio" name="sex" id="sex-f" value="f" checked><label for="sex-f">Женский</label>
+        <input type="radio" name="sex" id="sex-m" value="m"><label for="sex-m">Мужской</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="row3">
+        <div class="num">
+          <label class="label" for="age">Возраст</label>
+          <div class="box"><input id="age" name="age" type="number" inputmode="numeric" min="14" max="100" value="30"><span>лет</span></div>
+        </div>
+        <div class="num">
+          <label class="label" for="height">Рост</label>
+          <div class="box"><input id="height" name="height" type="number" inputmode="numeric" min="120" max="230" value="165"><span>см</span></div>
+        </div>
+        <div class="num">
+          <label class="label" for="weight">Вес</label>
+          <div class="box"><input id="weight" name="weight" type="number" inputmode="decimal" min="35" max="250" step="0.1" value="62"><span>кг</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="activity">Активность</label>
+      <select id="activity" name="activity">
+        <option value="1.2">Минимальная: сидячая работа</option>
+        <option value="1.375" selected>Низкая: 1–3 тренировки в неделю</option>
+        <option value="1.55">Средняя: 3–5 тренировок в неделю</option>
+        <option value="1.725">Высокая: 6–7 тренировок в неделю</option>
+        <option value="1.9">Очень высокая: физический труд</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <span class="label">Цель</span>
+      <div class="seg">
+        <input type="radio" name="goal" id="g-lose" value="lose"><label for="g-lose">Снизить вес</label>
+        <input type="radio" name="goal" id="g-keep" value="keep" checked><label for="g-keep">Сохранить</label>
+        <input type="radio" name="goal" id="g-gain" value="gain"><label for="g-gain">Набрать</label>
+      </div>
+    </div>
+  </form>
+
+  <section class="card result" id="result" aria-live="polite"></section>
+
+  <div class="install" id="install">
+    <button class="btn" id="installBtn" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      Установить на телефон
+    </button>
+  </div>
+  <div class="install" id="iosInstall">
+    <p class="ios-hint">
+      Чтобы установить: нажмите
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Поделиться"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+      «Поделиться», затем <b>«На экран „Домой“»</b>
+    </p>
+  </div>
+
+  <p class="disclaimer">Расчёт по формуле Миффлина — Сан Жеора. Это ориентир, а не назначение: при заболеваниях, беременности и кормлении грудью норму подбирает специалист.</p>
+
+  <footer><a href="../">Записаться на консультацию к Алине →</a></footer>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('form');
+  var out = document.getElementById('result');
+  var KEY = 'alina-calc';
+
+  var GOALS = {
+    lose: { k: 0.85, protein: 1.6, text: 'Мягкий дефицит −15%: вес уходит без голода и срывов.' },
+    keep: { k: 1.00, protein: 1.4, text: 'Столько вы тратите в день — вес будет стабильным.' },
+    gain: { k: 1.10, protein: 1.6, text: 'Небольшой профицит +10% для плавного набора.' }
+  };
+  var LIMITS = { age: [14, 100], height: [120, 230], weight: [35, 250] };
+
+  function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
+
+  function restore() {
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!s) return;
+      ['age', 'height', 'weight', 'activity'].forEach(function (k) { if (s[k]) form[k].value = s[k]; });
+      ['sex', 'goal'].forEach(function (k) {
+        var el = form.querySelector('input[name="' + k + '"][value="' + s[k] + '"]');
+        if (el) el.checked = true;
+      });
+    } catch (e) {}
+  }
+
+  function save(d) {
+    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
+  }
+
+  function calc() {
+    var d = {
+      sex: form.sex.value,
+      goal: form.goal.value,
+      age: form.age.value,
+      height: form.height.value,
+      weight: form.weight.value.replace(',', '.'),
+      activity: form.activity.value
+    };
+
+    var ok = true;
+    Object.keys(LIMITS).forEach(function (k) {
+      var v = parseFloat(d[k]);
+      var bad = isNaN(v) || v < LIMITS[k][0] || v > LIMITS[k][1];
+      form[k].classList.toggle('bad', bad && d[k] !== '');
+      if (bad) ok = false;
+    });
+
+    if (!ok) {
+      out.innerHTML = '<p class="err">Проверьте данные: возраст 14–100 лет, рост 120–230 см, вес 35–250 кг.</p>';
+      return;
+    }
+    save(d);
+
+    var age = +d.age, h = +d.height, w = +d.weight, act = +d.activity;
+    var g = GOALS[d.goal];
+
+    // Формула Миффлина — Сан Жеора
+    var bmr = 10 * w + 6.25 * h - 5 * age + (d.sex === 'm' ? 5 : -161);
+    var tdee = bmr * act;
+    var kcal = tdee * g.k;
+    var floor = d.sex === 'm' ? 1500 : 1200;
+    var floored = false;
+    if (d.goal === 'lose' && kcal < floor) { kcal = Math.min(floor, tdee); floored = true; }
+    kcal = Math.round(kcal / 10) * 10;
+
+    // БЖУ: белок по весу (не больше 30% калорий), жиры 30%, остальное — углеводы
+    var p = Math.min(g.protein * w, kcal * 0.30 / 4);
+    var f = kcal * 0.30 / 9;
+    var c = Math.max(0, (kcal - p * 4 - f * 9) / 4);
+    var total = p * 4 + f * 9 + c * 4;
+    var pp = p * 4 / total * 100, fp = f * 9 / total * 100, cp = 100 - pp - fp;
+
+    out.innerHTML =
+      '<p class="label">Ваша норма в день</p>' +
+      '<div class="kcal">' + fmt(kcal) + '<small>ккал</small></div>' +
+      '<p class="note">' + g.text +
+        (floored ? '<br>Ниже ' + fmt(floor) + ' ккал опускаться не стоит.' : '') +
+      '</p>' +
+      '<p class="note">Обмен веществ в покое: <b>' + fmt(bmr) + '</b> · с учётом активности: <b>' + fmt(tdee) + '</b> ккал</p>' +
+      '<div class="bar" aria-hidden="true">' +
+        '<i style="width:' + pp + '%;background:var(--p)"></i>' +
+        '<i style="width:' + fp + '%;background:var(--f)"></i>' +
+        '<i style="width:' + cp + '%;background:var(--c)"></i>' +
+      '</div>' +
+      '<div class="macros">' +
+        macro('Белки', p, pp, '--p') +
+        macro('Жиры', f, fp, '--f') +
+        macro('Углеводы', c, cp, '--c') +
+      '</div>';
+  }
+
+  function macro(name, g, pct, color) {
+    return '<div class="macro">' +
+      '<div class="name"><span class="dot" style="background:var(' + color + ')"></span>' + name + '</div>' +
+      '<div class="g">' + fmt(g) + '<small>г</small></div>' +
+      '<div class="pct">' + Math.round(pct) + '%</div>' +
+    '</div>';
+  }
+
+  restore();
+  form.addEventListener('input', calc);
+  form.addEventListener('change', calc);
+  form.addEventListener('submit', function (e) { e.preventDefault(); });
+  calc();
+
+  /* ---------- Установка на телефон ---------- */
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  var deferred = null;
+  var installBox = document.getElementById('install');
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    installBox.classList.add('show');
+  });
+  document.getElementById('installBtn').addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.finally(function () {
+      deferred = null;
+      installBox.classList.remove('show');
+    });
+  });
+  window.addEventListener('appinstalled', function () { installBox.classList.remove('show'); });
+
+  // На iPhone и iPad кнопки установки нет — показываем подсказку
+  var ua = navigator.userAgent;
+  var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS && !standalone) document.getElementById('iosInstall').classList.add('show');
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
